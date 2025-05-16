@@ -5,14 +5,16 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.*;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Mojo(name = "check", defaultPhase = LifecyclePhase.VERIFY)
 public class UnusedClassMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${project.build.outputDirectory}", readonly = true)
     private File outputDirectory;
+
+    private Map<String, Set<String>> referenceGraph = new HashMap<>();
+    private Set<String> allClasses = new HashSet<>();
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -28,13 +30,36 @@ public class UnusedClassMojo extends AbstractMojo {
             collectClassFiles(outputDirectory, classFiles);
 
             getLog().info("Found " + classFiles.size() + " .class files");
-            for (File f : classFiles) {
-                getLog().debug("Class: " + f.getAbsolutePath());
+            for (File file : classFiles) {
+                getLog().debug("Class: " + file.getAbsolutePath());
+
+                ClassDependencyAnalyzer analyzer = new ClassDependencyAnalyzer();
+                analyzer.analyze(file);
+
+                String className = analyzer.getClassName();
+                allClasses.add(className);
+                referenceGraph.put(className, analyzer.getReferencedClasses());
             }
         } catch (Exception e) {
             throw new MojoExecutionException("Failed during unused class detection", e);
         }
 
+        Set<String> usedClasses = new HashSet<>();
+        for (Set<String> refs : referenceGraph.values()) {
+            usedClasses.addAll(refs);
+        }
+
+        Set<String> unusedClasses = new HashSet<>(allClasses);
+        unusedClasses.removeAll(usedClasses);
+
+        if (unusedClasses.isEmpty()) {
+            getLog().info("No unused classes found.");
+        } else {
+            getLog().info("Unused classes:");
+            for (String unusedClass : unusedClasses) {
+                getLog().info("  " + unusedClass);
+            }
+        }
     }
 
     private void collectClassFiles(File dir, List<File> classFiles) {
