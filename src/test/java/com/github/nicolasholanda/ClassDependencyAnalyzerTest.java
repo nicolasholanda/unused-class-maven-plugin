@@ -70,6 +70,64 @@ public class ClassDependencyAnalyzerTest {
         assertTrue(refs.contains("java/util/Map"));
     }
 
+    @Test
+    void testAnalyzeClassWithSpringAnnotation() throws IOException {
+        String className = "com/github/nicolasholanda/AnnotatedController";
+        String superName = "java/lang/Object";
+        File file = File.createTempFile("AnnotatedController", ".class");
+        file.deleteOnExit();
+
+        ClassWriter classWriter = new ClassWriter(0);
+        classWriter.visit(Opcodes.V11, Opcodes.ACC_PUBLIC, className, null, superName, null);
+        // Add @Controller annotation
+        classWriter.visitAnnotation("Lorg/springframework/stereotype/Controller;", true).visitEnd();
+        classWriter.visitEnd();
+
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(classWriter.toByteArray());
+        }
+
+        ClassDependencyAnalyzer analyzer = new ClassDependencyAnalyzer();
+        analyzer.analyze(file);
+
+        assertTrue(analyzer.isUsedByFramework());
+    }
+
+    @Test
+    void testAnalyzeClassWithJaxRsAnnotation() throws IOException {
+        String className = "com/github/nicolasholanda/JaxRsResource";
+        String superName = "java/lang/Object";
+        File file = File.createTempFile("JaxRsResource", ".class");
+        file.deleteOnExit();
+
+        ClassWriter classWriter = new ClassWriter(0);
+        classWriter.visit(Opcodes.V11, Opcodes.ACC_PUBLIC, className, null, superName, null);
+        // Add @Path annotation
+        classWriter.visitAnnotation("Ljavax/ws/rs/Path;", true).visitEnd();
+        classWriter.visitEnd();
+
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(classWriter.toByteArray());
+        }
+
+        ClassDependencyAnalyzer analyzer = new ClassDependencyAnalyzer();
+        analyzer.analyze(file);
+
+        assertTrue(analyzer.isUsedByFramework());
+    }
+
+    @Test
+    void testAnalyzeClassWithoutFrameworkAnnotation() throws IOException {
+        String className = "com/github/nicolasholanda/PlainClass";
+        String superName = "java/lang/Object";
+        File file = generateSimpleClass(className, superName);
+
+        ClassDependencyAnalyzer analyzer = new ClassDependencyAnalyzer();
+        analyzer.analyze(file);
+
+        assertFalse(analyzer.isUsedByFramework());
+    }
+
     private File generateSimpleClass(String className, String superName, String... interfaces) throws IOException {
         File file = File.createTempFile(className, ".class");
         file.deleteOnExit();

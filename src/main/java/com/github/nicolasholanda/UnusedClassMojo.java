@@ -24,6 +24,7 @@ public class UnusedClassMojo extends AbstractMojo {
             throw new MojoExecutionException("Output directory does not exist: " + outputDirectory);
         }
 
+        Set<String> frameworkUsedClasses = new HashSet<>();
 
         try {
             List<File> classFiles = new ArrayList<>();
@@ -39,6 +40,9 @@ public class UnusedClassMojo extends AbstractMojo {
                 String className = analyzer.getClassName();
                 allClasses.add(className);
                 referenceGraph.put(className, analyzer.getReferencedClasses());
+                if (analyzer.isUsedByFramework()) {
+                    frameworkUsedClasses.add(className);
+                }
             }
         } catch (Exception e) {
             throw new MojoExecutionException("Failed during unused class detection", e);
@@ -51,6 +55,7 @@ public class UnusedClassMojo extends AbstractMojo {
 
         Set<String> unusedClasses = new HashSet<>(allClasses);
         unusedClasses.removeAll(usedClasses);
+        unusedClasses.removeAll(frameworkUsedClasses);
 
         if (unusedClasses.isEmpty()) {
             getLog().info("No unused classes found.");

@@ -20,6 +20,22 @@ public class ClassDependencyAnalyzer extends ClassVisitor {
      */
     private final Set<String> referencedClasses = new HashSet<>();
 
+    // Framework annotations
+    private static final Set<String> FRAMEWORK_ANNOTATIONS = Set.of(
+            "Lorg/springframework/stereotype/Controller;",
+            "Lorg/springframework/web/bind/annotation/RestController;",
+            "Lorg/springframework/stereotype/Service;",
+            "Lorg/springframework/stereotype/Component;",
+            "Lorg/springframework/stereotype/Repository;",
+            "Lorg/springframework/boot/autoconfigure/SpringBootApplication;",
+            "Lorg/springframework/context/annotation/Configuration;",
+            "Ljavax/ws/rs/Path;",
+            "Ljavax/ws/rs/Provider;",
+            "Ljakarta/ws/rs/Path;",
+            "Ljakarta/ws/rs/Provider;");
+
+    private boolean usedByFramework = false;
+
     private String className;
 
     /**
@@ -105,6 +121,21 @@ public class ClassDependencyAnalyzer extends ClassVisitor {
     }
 
     /**
+     * Visits an annotation of the class.
+     *
+     * @param descriptor the class descriptor of the annotation
+     * @param visible    whether the annotation is visible at runtime
+     * @return a visitor to visit the annotation values, or {@code null}
+     */
+    @Override
+    public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+        if (FRAMEWORK_ANNOTATIONS.contains(descriptor)) {
+            usedByFramework = true;
+        }
+        return super.visitAnnotation(descriptor, visible);
+    }
+
+    /**
      * Returns the set of class dependencies collected during the visit.
      *
      * @return a set of internal class names this class depends on
@@ -120,5 +151,14 @@ public class ClassDependencyAnalyzer extends ClassVisitor {
      */
     public String getClassName() {
         return className;
+    }
+
+    /**
+     * Indicates whether the class is used by a framework via annotation.
+     *
+     * @return true if it has a framework annotation
+     */
+    public boolean isUsedByFramework() {
+        return usedByFramework;
     }
 }
