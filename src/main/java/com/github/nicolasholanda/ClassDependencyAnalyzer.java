@@ -55,7 +55,7 @@ public class ClassDependencyAnalyzer extends ClassVisitor {
     @Override
     public void visit(int version, int access, String name, String signature,
                       String superName, String[] interfaces) {
-        className = name.replace('/', '.');
+        className = name;
 
         if (superName != null) {
             referencedClasses.add(superName);

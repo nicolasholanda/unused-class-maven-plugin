@@ -22,7 +22,7 @@ public class ClassDependencyAnalyzerTest {
         ClassDependencyAnalyzer analyzer = new ClassDependencyAnalyzer();
         analyzer.analyze(classFile);
 
-        assertEquals(className.replace('/', '.'), analyzer.getClassName());
+        assertEquals(className, analyzer.getClassName());
         Set<String> refs = analyzer.getReferencedClasses();
         assertTrue(refs.contains(superName));
     }
